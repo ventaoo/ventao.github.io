@@ -240,13 +240,13 @@ section{ padding:96px 0 30px; position:relative; z-index:10; }
 .avatar-box .av-head .tag .pulse{ color:var(--green); }
 .avatar-box .av-stage{
   flex:0 0 auto; aspect-ratio:1 / 1;   /* 高度由图片比例决定（JS 动态改写），不拉伸 */
-  display:flex; align-items:center; justify-content:center; padding:20px;
+  display:flex; align-items:center; justify-content:center; padding:0;   /* 清零内边距，避免比例错位导致照片留黑边 */
   background:
     radial-gradient(circle at 50% 40%, rgba(176,108,214,.10), transparent 60%),
     #1a1c2c;
   min-height:180px; position:relative;
 }
-.avatar-box svg.av-face{ width:100%; max-width:200px; height:auto; position:relative; z-index:1; }
+.avatar-box svg.av-face{ width:100%; max-width:200px; height:auto; position:relative; z-index:1; margin:18px; }   /* 仅占位机器人留呼吸感（照片层绝对定位，不受影响） */
 /* 底部状态条：OPEN TO WORK（头像卡底栏，左右等高时自然落在最下方） */
 .avatar-box .av-foot{
   display:flex; align-items:center; justify-content:center; gap:8px;
@@ -843,13 +843,15 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
     /* 让头像(含标题栏+状态条)总高 ≈ 右侧 bio 高度：
        用照片真实比例推导容器宽高 → 不变形、填满；左右等高、不空洞 */
     function syncHeights(){
-      if(!img.naturalWidth || !bio || isStacked()){ stage.style.height=''; return; }  // 堆叠态交回自然尺寸
+      if(!img.naturalWidth || !bio || isStacked()){ stage.style.height=''; stage.style.width=''; stage.style.minHeight=''; return; }  // 堆叠态交回自然尺寸
       const iw=img.naturalWidth||1, ih=img.naturalHeight||1;
       const Hb = bio.getBoundingClientRect().height;
       const headFoot = avatarBox.offsetHeight - stage.offsetHeight;   // 标题栏+状态条高度（与舞台尺寸无关，恒定）
       const target = Math.max(120, Math.round(Hb - headFoot));      // 舞台目标高 = bio 高 - 头脚 → 整卡与 bio 等高
+      const w = Math.round(target * iw/ih);                        // 宽由照片真实比例推导 → 比例不变、填满不变形
       stage.style.height = target + 'px';
-      stage.style.aspectRatio = iw + ' / ' + ih;                   // 宽由比例推导 → 照片真实比例、填满不变形
+      stage.style.width  = w + 'px';                              // 显式定宽高，不依赖 aspect-ratio 隐式推导，彻底消除黑边
+      stage.style.minHeight = target + 'px';                       // 中和 CSS 180 下限，保证比例精确、左右严格等高
     }
     function go(){
       syncHeights();                                            // 先按 bio 高度定舞台尺寸（比例不变）
