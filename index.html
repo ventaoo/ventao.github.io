@@ -260,7 +260,7 @@ section{ padding:96px 0 30px; position:relative; z-index:10; }
 .av-face .a-mouth{ fill:var(--green); }
 /* 真实照片 + 马赛克还原动画层 */
 .avatar-box img.av-img{
-  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; display:none;
+  position:absolute; inset:0; width:100%; height:100%; object-fit:contain; z-index:1; display:none;
 }
 .avatar-box canvas.av-fx{
   position:absolute; inset:0; width:100%; height:100%; z-index:1; display:none;
@@ -810,12 +810,17 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
     function draw(bs){
       bs = Math.max(1, bs);
       const DW=c.width, DH=c.height;                 // 用设备像素，保证 bs=1 时真正高清
-      const sw = Math.max(1, Math.round(DW/bs)), sh = Math.max(1, Math.round(DH/bs));
-      oc.width=sw; oc.height=sh;
-      octx.drawImage(img,0,0,sw,sh);          // 下采样到低分辨率
       ctx.imageSmoothingEnabled=false;
       ctx.clearRect(0,0,DW,DH);
-      ctx.drawImage(oc,0,0,DW,DH);             // 关闭平滑 → 硬边马赛克
+      // 计算「保持原图比例 + 居中 + 不超出画布」的绘制矩形（letterbox，不变形）
+      const iw = img.naturalWidth||1, ih = img.naturalHeight||1;
+      const scale = Math.min(DW/iw, DH/ih);
+      const dw = Math.max(1, Math.round(iw*scale)), dh = Math.max(1, Math.round(ih*scale));
+      const dx = Math.round((DW-dw)/2), dy = Math.round((DH-dh)/2);
+      const sw = Math.max(1, Math.round(dw/bs)), sh = Math.max(1, Math.round(dh/bs));
+      oc.width=sw; oc.height=sh;
+      octx.drawImage(img,0,0,sw,sh);          // 按照片比例下采样到低分辨率
+      ctx.drawImage(oc, 0,0,sw,sh, dx,dy,dw,dh);  // 居中绘制 → 硬边马赛克（比例不变）
     }
     const T_RESTORE=2200, T_HOLD_HD=1300, T_DEGRADE=900, T_HOLD_M=500;
     const CYC = T_RESTORE+T_HOLD_HD+T_DEGRADE+T_HOLD_M;
