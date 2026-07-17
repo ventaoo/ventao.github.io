@@ -108,7 +108,7 @@ img, svg{ image-rendering:pixelated; image-rendering:crisp-edges; }
 section#about   .vf{ --c:var(--cyan); }
 section#skills  .vf{ --c:var(--red); }
 section#exp     .vf{ --c:var(--lime); }
-section#projects .vf{ --c:var(--purple); }
+section#papers .vf{ --c:var(--purple); }
 section#contact .vf{ --c:var(--yellow); }
 
 /* 高斯泼溅光斑工具类：柔和高斯 blob（与硬像素 UI 形成 deliberate 对比）
@@ -244,14 +244,6 @@ section{ padding:96px 0 30px; position:relative; z-index:10; }
     #1a1c2c;
   min-height:215px; position:relative;
 }
-/* 重建采样点阵（极淡，呼应 3DGS 的"扫描"） */
-.avatar-box .av-stage::after{
-  content:""; position:absolute; inset:0; opacity:.18; pointer-events:none;
-  background-image:radial-gradient(var(--cyan) 1px, transparent 1.4px);
-  background-size:10px 10px;
-  animation:splatShift 6s linear infinite;
-}
-@keyframes splatShift{ to{ background-position:10px 10px; } }
 .avatar-box svg.av-face{ width:100%; max-width:200px; height:auto; position:relative; z-index:1; }
 /* 底部状态条：OPEN TO WORK（头像卡底栏，左右等高时自然落在最下方） */
 .avatar-box .av-foot{
@@ -266,6 +258,14 @@ section{ padding:96px 0 30px; position:relative; z-index:10; }
 .av-face .a-visor{ fill:var(--cyan); }
 .av-face .a-ant{ fill:var(--green); }
 .av-face .a-mouth{ fill:var(--green); }
+/* 真实照片 + 马赛克还原动画层 */
+.avatar-box img.av-img{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; display:none;
+}
+.avatar-box canvas.av-fx{
+  position:absolute; inset:0; width:100%; height:100%; z-index:1; display:none;
+  image-rendering:pixelated; image-rendering:crisp-edges; pointer-events:none;
+}
 
 .about-text p{ color:var(--ink); margin-bottom:14px; }
 .p-name{ font-family:"Press Start 2P"; font-size:.92rem; color:var(--cyan);
@@ -354,43 +354,76 @@ section{ padding:96px 0 30px; position:relative; z-index:10; }
 .quest p{ color:var(--dim); font-size:.95rem; }
 
 /* ============================================================
-   PROJECTS / 成就（带 splat 顶条）
+   PAPERS / 论文（时间轴序列格式）
    ============================================================ */
-.proj-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
-.card{
-  background:
-    radial-gradient(130% 70% at 50% 0%, rgba(65,166,246,.16), transparent 72%),
-    radial-gradient(rgba(167,240,112,.10) 1px, transparent 1.6px),
-    var(--panel);
-  background-size:auto, 12px 12px, auto;
-  border:var(--pixel) solid var(--line);
-  padding:0 0 18px; transition:.14s; position:relative; overflow:hidden;
-  box-shadow:6px 6px 0 var(--shadow);
+.paper-list{ position:relative; display:flex; flex-direction:column; gap:26px; padding-left:4px; }
+/* 时间轴竖线：贯穿所有节点，沿用 splat 渐变 */
+.paper-list::before{
+  content:""; position:absolute; left:12px; top:10px; bottom:10px; width:4px;
+  background:linear-gradient(180deg, var(--cyan), var(--lime), var(--yellow), var(--purple));
 }
-.card .splat-bar{ height:8px; background:linear-gradient(90deg, var(--cyan), var(--lime), var(--yellow), var(--purple)); }
-.card .pad{ padding:20px 20px 0; position:relative; z-index:2; }
-.card:hover{ transform:translate(-2px,-2px); box-shadow:8px 8px 0 var(--shadow); background:var(--panel2); }
-.card .badge{ font-family:"Press Start 2P"; font-size:.5rem; color:var(--red); margin-bottom:10px; display:block; }
-.card h4{ color:var(--ink); font-size:1.1rem; margin-bottom:8px; }
-.card p{ color:var(--dim); font-size:.9rem; }
-.card .tags{ margin-top:12px; display:flex; flex-wrap:wrap; gap:6px; }
-.card .tags span{ font-family:"VT323"; font-size:.95rem; color:var(--cyan); border:2px solid var(--line); padding:1px 7px; }
+.paper-item{ position:relative; display:grid; grid-template-columns:30px 1fr; column-gap:14px; align-items:start; }
+.paper-item .node{
+  position:relative; z-index:2; width:16px; height:16px; margin:8px 0 0 6px;
+  background:var(--cyan); border:3px solid var(--line); box-shadow:3px 3px 0 var(--shadow);
+}
+.paper-item:nth-child(2) .node{ background:var(--lime); }
+.paper-item:nth-child(3) .node{ background:var(--yellow); }
+.paper-item:nth-child(4) .node{ background:var(--purple); }
+.paper-item:nth-child(5) .node{ background:var(--orange); }
+.paper-item:nth-child(n+6) .node{ background:var(--cyan); }
+.paper-body{
+  background:
+    radial-gradient(130% 80% at 0% 0%, rgba(65,166,246,.14), transparent 70%),
+    var(--panel);
+  border:var(--pixel) solid var(--line);
+  padding:16px 18px; position:relative;
+  box-shadow:6px 6px 0 var(--shadow); transition:.14s;
+}
+.paper-body:hover{ background:var(--panel2); }
+.paper-body .badge{ font-family:"Press Start 2P"; font-size:.5rem; color:var(--red); display:block; margin-bottom:10px; }
+.paper-body h4{ color:var(--ink); font-size:1.05rem; line-height:1.35; margin-bottom:8px; }
+.paper-body .authors{ color:var(--dim); font-size:.82rem; margin-bottom:6px; }
+.paper-body .venue{ font-family:"Press Start 2P"; font-size:.46rem; color:var(--cyan); margin-bottom:10px; letter-spacing:.03em; }
+.paper-body .abs{ color:var(--dim); font-size:.88rem; line-height:1.55; }
+.paper-body .links{ margin-top:14px; display:flex; flex-wrap:wrap; gap:8px; }
+.paper-body .links a{ font-family:"Press Start 2P"; font-size:.46rem; color:var(--ink); text-decoration:none; border:2px solid var(--line); padding:8px 10px; background:var(--bg); box-shadow:3px 3px 0 var(--shadow); transition:.1s; }
+.paper-body .links a:hover{ background:var(--yellow); color:#000; transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--shadow); }
 
 /* ============================================================
    CONTACT / 求职意向
    ============================================================ */
-.contact-grid{ display:grid; grid-template-columns:1fr 1fr; gap:24px; }
-.intent p{ margin-bottom:12px; }
-.intent .k{ font-family:"Press Start 2P"; font-size:.5rem; color:var(--red); display:block; margin-bottom:4px; }
-.intent .v{ font-size:1.05rem; color:var(--ink); }
-.socials{ display:flex; flex-wrap:wrap; gap:11px; margin-top:16px; }
+.contact-grid{ display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:stretch; }
+/* 左侧意向列表：竖向居中填充等高列，去掉 EMAIL 行后避免底部空洞 */
+.intent{ display:flex; flex-direction:column; height:100%; justify-content:center; gap:18px; }
+.intent p{ margin-bottom:0; }
+.intent .k{ font-family:"Press Start 2P"; font-size:.54rem; color:var(--red); display:block; margin-bottom:6px; letter-spacing:.04em; }
+.intent .v{ font-size:1.1rem; color:var(--ink); line-height:1.5; }
+
+/* 右侧：自包含联系卡片，密度/高度与左侧列表对齐 */
+.contact-card{
+  border:3px solid var(--line); background:var(--bg2);
+  box-shadow:6px 6px 0 var(--shadow);
+  padding:20px; display:flex; flex-direction:column; gap:16px;
+}
+.cc-head .k{ font-family:"Press Start 2P"; font-size:.5rem; color:var(--red); display:block; }
+.cc-sub{ display:block; margin-top:6px; color:var(--dim); font-size:.85rem; }
+.cc-mail{
+  display:flex; align-items:center; gap:12px; text-decoration:none;
+  border:3px solid var(--green); background:rgba(167,240,112,.08);
+  padding:14px 16px; color:var(--green); font-family:"VT323"; font-size:1.45rem;
+  box-shadow:4px 4px 0 var(--shadow); transition:.1s; word-break:break-all;
+}
+.cc-mail:hover{ background:var(--green); color:#0b0c14; transform:translate(-1px,-1px); box-shadow:5px 5px 0 var(--shadow); }
+.cc-mail .ico{ font-size:1.15rem; flex:0 0 auto; }
+.socials{ display:grid; grid-template-columns:repeat(2,1fr); gap:11px; }
 .socials a{
-  font-family:"Press Start 2P"; font-size:.52rem; color:var(--ink); text-decoration:none;
-  border:3px solid var(--line); padding:11px 13px; background:var(--bg2);
-  box-shadow:3px 3px 0 var(--shadow); transition:.1s;
+  font-family:"Press Start 2P"; font-size:.5rem; color:var(--ink); text-decoration:none;
+  border:3px solid var(--line); padding:14px 12px; background:var(--bg);
+  box-shadow:3px 3px 0 var(--shadow); transition:.1s; text-align:center;
 }
 .socials a:hover{ background:var(--yellow); color:#000; transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--shadow); }
-.email-big{ font-family:"VT323"; font-size:1.5rem; color:var(--green); word-break:break-all; }
+.cc-note{ color:var(--dim); font-size:.9rem; line-height:1.55; margin-top:auto; }
 
 footer{ text-align:center; padding:40px 20px 70px; color:var(--dim); font-family:"VT323"; font-size:1.05rem; position:relative; z-index:10; }
 footer .pix{ font-family:"Press Start 2P"; font-size:.5rem; color:var(--line); display:block; margin-bottom:10px; }
@@ -423,7 +456,7 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
   .about-grid .meta-list{ text-align:left; }
   .combo{ grid-template-columns:1fr; }
   .stats{ grid-template-columns:1fr; }
-  .proj-grid{ grid-template-columns:1fr; }
+  .paper-list{ gap:18px; }
   .contact-grid{ grid-template-columns:1fr; }
   .sec-head h2{ font-size:.75rem; }
 }
@@ -448,33 +481,33 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
 
 <!-- 导航 -->
 <header class="nav">
-  <div class="brand"><div class="logo"></div><b>PLAYER_01</b></div>
+  <div class="brand"><div class="logo"></div><b id="navBrand">PLAYER_01</b></div>
   <nav class="links">
     <a href="#hero">HOME</a>
     <a href="#about">PROFILE</a>
     <a href="#skills">SKILLS</a>
     <a href="#exp">QUESTS</a>
-    <a href="#projects">ITEMS</a>
+    <a href="#papers">PAPERS</a>
     <a href="#contact">CONTACT</a>
   </nav>
 </header>
 
 <!-- HERO -->
 <section id="hero">
-  <div class="hero-boot">● RECONSTRUCTING&hellip; <span class="blip">PLAYER_01 // 3DGS ENGINE</span></div>
+  <div class="hero-boot" id="heroBoot">● RECONSTRUCTING&hellip; <span class="blip">PLAYER_01 // 3DGS ENGINE</span></div>
   <!-- 把下面 data-text 和文字替换成你的名字 -->
-  <h1 class="hero-name" data-text="3DGS // RECON STATION">3DGS // RECON STATION</h1>
-  <div class="hero-class">CLASS: <span class="lv">3D ALGORITHM ENGINEER</span> &#9733; LV.99</div>
-  <div class="hero-sub">8-BIT PIXELS <b>&times;</b> 3D GAUSSIAN SPLATTING</div>
+  <h1 class="hero-name" id="heroName" data-text="3DGS // RECON STATION">3DGS // RECON STATION</h1>
+  <div class="hero-class" id="heroClass">CLASS: <span class="lv">3D ALGORITHM ENGINEER</span> &#9733; LV.99</div>
+  <div class="hero-sub" id="heroSub">8-BIT PIXELS <b>&times;</b> 3D GAUSSIAN SPLATTING</div>
   <!-- 重建遥测 HUD：3DGS 工作站的签名状态条 -->
-  <div class="hud">
+  <div class="hud" id="hud">
     <span><i>&#9670;</i>SPLATS 1.2M</span>
     <span><i>&#9670;</i>CAM 24</span>
     <span><i>&#9670;</i>DEPTH &#10003;</span>
     <span><i>&#9670;</i>FPS 60</span>
   </div>
   <div class="type"><span id="typed"></span><span class="cursor">_</span></div>
-  <div class="btn-row">
+  <div class="btn-row" id="btnRow">
     <a class="btn" href="#about">&#9654; ENTER</a>
     <a class="btn alt" href="#contact">&#10511; HIRE ME</a>
     <!-- 把 # 换成你的简历 PDF 链接 -->
@@ -493,11 +526,14 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
     <div class="box vf about-grid">
       <div class="avatar-box">
         <div class="av-head">
-          <span class="tag">&#9733; PLAYER 01 <span class="pulse">&#9679;</span></span>
+          <span class="tag" id="avTag">&#9733; PLAYER 01 <span class="pulse">&#9679;</span></span>
         </div>
-        <div class="av-stage">
-          <!-- 像素头像（AI 机器人脸）。想换成自己的照片：把下面 svg 换成 <img src="你的图.png" style="width:100%"> -->
-          <svg class="av-face" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" aria-label="avatar">
+        <div class="av-stage" id="avStage">
+          <!-- 真实照片：马赛克 → 高清 循环还原动画（由 config.js 的 profile.avatar 控制） -->
+          <img id="avImg" class="av-img" alt="头像照片" />
+          <canvas id="avFx" class="av-fx"></canvas>
+          <!-- 未配置照片时的像素机器人占位（配置 avatar 后自动隐藏） -->
+          <svg id="avFallback" class="av-face" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" aria-label="avatar">
             <rect class="a-ant" x="7" y="0" width="2" height="2"/>
             <rect class="a-bg" x="3" y="2" width="10" height="12"/>
             <rect class="a-line" x="3" y="2" width="10" height="12"/>
@@ -509,22 +545,22 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
             <rect x="13" y="6" width="1" height="3" fill="#b13e53"/>
           </svg>
         </div>
-        <div class="av-foot">
+        <div class="av-foot" id="avfoot">
           <span class="dot"></span>OPEN TO WORK &middot; 可接受机会
         </div>
       </div>
       <div class="about-text">
-        <h3 class="p-name">ventao · 文涛</h3>
+        <h3 class="p-name" id="pname">ventao · 文涛</h3>
         <!-- ↓↓↓ 替换为你的真实自我介绍（已精简，去套话） ↓↓↓ -->
-        <p>我是<span class="hl">3D 算法工程师</span>，做三维重建与神经渲染（3DGS / NeRF / SLAM），
+        <p id="bio">我是<span class="hl">3D 算法工程师</span>，做三维重建与神经渲染（3DGS / NeRF / SLAM），
         把真实场景变成能实时渲染的模型。</p>
-        <ul class="meta-list">
+        <ul class="meta-list" id="metaList">
           <li><b>LOCATION</b>中国 &middot; 城市名</li>
           <li><b>EXPERIENCE</b>3+ Years</li>
           <li><b>DEGREE</b>硕士 &middot; 计算机</li>
           <li><b>LANG</b>中文 / English</li>
         </ul>
-        <div class="edu-mini">
+        <div class="edu-mini" id="edu">
           <span class="k">EDU</span>
           <div>
             <div class="edu-row"><b>计算机科学 &middot; 硕士</b> &middot; 某大学 <i>2018&ndash;2021</i></div>
@@ -544,7 +580,7 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
     <div class="box vf combo">
       <div class="col">
         <h3>// PROFICIENCY 能力值</h3>
-        <div class="stats">
+        <div class="stats" id="stats">
           <!-- data-val 是目标百分比，滚动到此处会自动填充 -->
           <div class="stat"><div class="top"><span>3D RECONSTRUCTION</span><span class="val">95</span></div><div class="bar-track"><div class="bar-fill" data-val="95"></div></div></div>
           <div class="stat"><div class="top"><span>NEURAL RENDERING</span><span class="val">93</span></div><div class="bar-track"><div class="bar-fill c" data-val="93"></div></div></div>
@@ -554,7 +590,7 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
           <div class="stat"><div class="top"><span>COMMUNICATION</span><span class="val">82</span></div><div class="bar-track"><div class="bar-fill m" data-val="82"></div></div></div>
         </div>
       </div>
-      <div class="col">
+      <div class="col" id="skillGroups">
         <div class="inv-group sg-lg">
           <h3 class="sg sg-lg">// LANG 语言</h3>
           <div class="inv">
@@ -589,7 +625,7 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
       <svg class="sec-ico" style="color:var(--lime)" viewBox="0 0 7 7" aria-hidden="true"><polygon points="3.5,0.5 6.5,6.5 0.5,6.5" fill="currentColor" stroke="#0b0c14" stroke-width="0.5"/><line x1="3.5" y1="0.5" x2="2" y2="3.5" stroke="#0b0c14" stroke-width="0.4"/><line x1="2" y1="3.5" x2="6.5" y2="6.5" stroke="#0b0c14" stroke-width="0.4"/></svg>
       <span class="idx">03</span><h2>QUEST LOG &middot; 经历</h2><span class="bar"></span>
     </div>
-    <div class="box vf">
+    <div class="box vf" id="quests">
       <div class="quest">
         <div class="node"></div>
         <div class="when">2023.06 &mdash; NOW</div>
@@ -611,40 +647,48 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
     </div>
   </section>
 
-  <!-- PROJECTS -->
-  <section id="projects">
+  <!-- PAPERS -->
+  <section id="papers">
     <div class="sec-head">
       <svg class="sec-ico" style="color:var(--purple)" viewBox="0 0 7 7" aria-hidden="true"><polygon points="3.5,0.5 6.5,6.5 0.5,6.5" fill="currentColor" stroke="#0b0c14" stroke-width="0.5"/><line x1="3.5" y1="0.5" x2="2" y2="3.5" stroke="#0b0c14" stroke-width="0.4"/><line x1="2" y1="3.5" x2="6.5" y2="6.5" stroke="#0b0c14" stroke-width="0.4"/></svg>
-      <span class="idx">04</span><h2>ACHIEVEMENTS &middot; 项目</h2><span class="bar"></span>
+      <span class="idx">04</span><h2>PUBLICATIONS &middot; 论文</h2><span class="bar"></span>
     </div>
-    <div class="proj-grid">
-      <div class="card vf">
-        <div class="splat-bar"></div>
-        <div class="pad">
-          <span class="badge">&#9733; ITEM 01</span>
-          <h4>三维重建引擎</h4>
-          <p>融合 SFM 与 MVS 的多视图重建流水线，支持稠密点云与网格生成，落地实景三维扫描。</p>
-          <div class="tags"><span>COLMAP</span><span>Open3D</span><span>Mesh</span></div>
+    <div class="box vf" id="papersBox">
+      <div class="paper-list" id="paperList">
+      <div class="paper-item">
+        <span class="node"></span>
+        <div class="paper-body">
+          <span class="badge">&#9733; PAPER 01</span>
+          <h4>论文标题（建议英文）</h4>
+          <p class="authors">你的名字, 合作者 等</p>
+          <p class="venue">CVPR 2026 &middot; Oral</p>
+          <p class="abs">论文摘要一句话介绍研究内容与贡献，方便招聘方快速了解你的学术产出。</p>
+          <div class="links"><a href="#">PDF</a><a href="#">CODE</a><a href="#">DOI</a></div>
         </div>
       </div>
-      <div class="card vf">
-        <div class="splat-bar"></div>
-        <div class="pad">
-          <span class="badge">&#9733; ITEM 02</span>
-          <h4>3DGS 实时渲染</h4>
-          <p>基于 3D 高斯泼溅的实时新视角合成系统，结合 CUDA 加速达到交互级帧率，支持 Web 端预览。</p>
-          <div class="tags"><span>3DGS</span><span>CUDA</span><span>实时</span></div>
+      <div class="paper-item">
+        <span class="node"></span>
+        <div class="paper-body">
+          <span class="badge">&#9733; PAPER 02</span>
+          <h4>论文标题（建议英文）</h4>
+          <p class="authors">你的名字, 合作者 等</p>
+          <p class="venue">ICCV 2025 &middot; Poster</p>
+          <p class="abs">论文摘要一句话介绍研究内容与贡献，方便招聘方快速了解你的学术产出。</p>
+          <div class="links"><a href="#">PDF</a><a href="#">CODE</a></div>
         </div>
       </div>
-      <div class="card vf">
-        <div class="splat-bar"></div>
-        <div class="pad">
-          <span class="badge">&#9733; ITEM 03</span>
-          <h4>神经渲染管线</h4>
-          <p>面向 NeRF / Instant-NGP 的训练与压缩方案，在保持画质的同时大幅降低模型体积与推理耗时。</p>
-          <div class="tags"><span>NeRF</span><span>压缩</span><span>边缘</span></div>
+      <div class="paper-item">
+        <span class="node"></span>
+        <div class="paper-body">
+          <span class="badge">&#9733; PAPER 03</span>
+          <h4>论文标题（建议英文）</h4>
+          <p class="authors">你的名字, 合作者 等</p>
+          <p class="venue">NeurIPS 2025 &middot; Workshop</p>
+          <p class="abs">论文摘要一句话介绍研究内容与贡献，方便招聘方快速了解你的学术产出。</p>
+          <div class="links"><a href="#">PDF</a><a href="#">DOI</a></div>
         </div>
       </div>
+    </div>
     </div>
   </section>
 
@@ -655,22 +699,26 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
       <span class="idx">05</span><h2>CONTACT &middot; 求职意向</h2><span class="bar"></span>
     </div>
     <div class="box vf contact-grid">
-      <div class="intent">
+      <div class="intent" id="intent">
         <p><span class="k">TARGET ROLE</span><span class="v">3D 算法工程师 / 神经渲染工程师 / 三维视觉</span></p>
         <p><span class="k">LOCATION</span><span class="v">城市名 / 远程可接受</span></p>
         <p><span class="k">AVAILABILITY</span><span class="v">随时到岗 &middot; 全职</span></p>
-        <p><span class="k">EMAIL</span><span class="email-big">you@example.com</span></p>
+        <p><span class="k">WECHAT</span><span class="v">your-wechat-id</span></p>
       </div>
-      <div>
-        <span class="k" style="font-family:'Press Start 2P';font-size:.5rem;color:var(--red);display:block;margin-bottom:12px;">// SEND COMMS</span>
-        <div class="socials">
-          <!-- 把 # 换成你的主页 / 仓库 -->
+      <div class="contact-card">
+        <div class="cc-head">
+          <span class="k">// SEND COMMS</span>
+          <span class="cc-sub" id="contactSub">随时接受新机会</span>
+        </div>
+        <a class="cc-mail" id="contactCta" href="#">
+          <span class="ico">&#9993;</span>
+          <span id="contactMail">you@example.com</span>
+        </a>
+        <div class="socials" id="socials">
           <a href="#">GitHub</a>
           <a href="#">LinkedIn</a>
-          <a href="#">知乎</a>
-          <a href="#">微信</a>
         </div>
-        <p style="margin-top:18px;color:var(--dim);font-size:.9rem;">
+        <p class="cc-note" id="contactNote">
           如果你正在寻找一名能落地、能沟通、能扛事的 3D 算法工程师，欢迎随时联系，我会尽快回复 &#10022;
         </p>
       </div>
@@ -684,6 +732,9 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
   &copy; 2026 ventao &middot; 文涛 &middot; BUILT WITH PIXELS &amp; &#9875; &middot; ALL RIGHTS RESERVED
 </footer>
 
+<!-- 配置文件：所有可手填的真实内容都在 config.js 里（与 index.html 同目录） -->
+<script src="config.js"></script>
+
 <script>
 /* ============================================================
    1) 背景：3DGS 视锥体（相机取景金字塔 · 跟随鼠标 + 容器聚焦）
@@ -693,6 +744,133 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
       —— 粒子 = 8bit 硬像素；未聚焦时满屏发散、聚焦时收束成视锥体(3DGS 体积)
       —— 开「减少动效」时关闭扫描/呼吸动画，仍保留鼠标跟随
    ============================================================ */
+/* ============================================================
+   0) 配置注入：从 config.js 的 window.SITE_CONFIG 渲染页面
+      —— 未加载配置文件时保留 HTML 内默认占位（兜底，避免白屏）
+      —— 所有「需要手填的真实内容」都集中在 config.js，改那里即可
+   ============================================================ */
+(function(){
+  const CFG = window.SITE_CONFIG;
+  if(!CFG) return;
+  const $ = id => document.getElementById(id);
+  const set = (id,txt) => { const e=$(id); if(e) e.textContent = txt; };
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // 页头元信息
+  if(CFG.meta){
+    if(CFG.meta.title) document.title = CFG.meta.title;
+    if(CFG.meta.description){ const m=document.querySelector('meta[name="description"]'); if(m) m.setAttribute('content', CFG.meta.description); }
+  }
+  if(CFG.brand){ const e=$('navBrand'); if(e) e.textContent = CFG.brand; }
+
+  const H = CFG.hero || {};
+  if(H.boot)        set('heroBoot', H.boot);
+  if(H.name){ const e=$('heroName'); if(e){ e.textContent = H.name; e.setAttribute('data-text', H.name); } }
+  if(H.classLevel){ const e=$('heroClass'); if(e) e.innerHTML = 'CLASS: <span class="lv">'+esc(H.classLevel.cls)+'</span> &#9733; '+esc(H.classLevel.level); }
+  if(H.sub)          set('heroSub', H.sub);
+  if(Array.isArray(H.hud)){ const e=$('hud'); if(e) e.innerHTML = H.hud.map(x=>'<span><i>&#9670;</i>'+esc(x.label)+' '+esc(x.val)+'</span>').join(''); }
+  if(Array.isArray(H.btns)){ const e=$('btnRow'); if(e) e.innerHTML = H.btns.map(b=>{
+      const cls = 'btn'+(b.cls?(' '+b.cls):'');
+      const dl  = b.download ? ' download' : '';
+      return '<a class="'+cls+'" href="'+esc(b.href)+'"'+dl+'>'+esc(b.label)+'</a>';
+    }).join(''); }
+
+  const P = CFG.profile || {};
+  if(P.playerTag){ const e=$('avTag'); if(e) e.innerHTML = esc(P.playerTag)+' <span class="pulse">&#10084;</span>'; }
+  if(P.name)  set('pname', P.name);
+  if(P.bio)   set('bio',   P.bio);
+  if(P.status){ const e=$('avfoot'); if(e) e.innerHTML = '<span class="dot"></span>'+esc(P.status); }
+  /* 头像：加载真实照片 + 马赛克→高清 循环还原动画（无照片则保留像素机器人） */
+  (function initAvatar(){
+    const stage = document.getElementById('avStage');
+    const img   = document.getElementById('avImg');
+    const fx    = document.getElementById('avFx');
+    const fb    = document.getElementById('avFallback');
+    const src   = P.avatar;
+    if(!stage || !img || !fx || !src){          // 无照片 → 占位机器人
+      if(img) img.style.display='none';
+      if(fx)  fx.style.display='none';
+      return;
+    }
+    if(fb) fb.style.display='none';
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const c = fx, ctx = c.getContext('2d');
+    const oc = document.createElement('canvas'), octx = oc.getContext('2d');
+    let W=1,H=1,dpr=1,Bmax=8,raf=0,start=0;
+    const ease = x => x<0.5 ? 2*x*x : 1-Math.pow(-2*x+2,2)/2;
+    function fit(){
+      const r = stage.getBoundingClientRect();
+      dpr = Math.min(2, window.devicePixelRatio||1);
+      W = Math.max(1, Math.round(r.width));
+      H = Math.max(1, Math.round(r.height));
+      c.width = Math.round(W*dpr); c.height = Math.round(H*dpr);
+      c.style.width = W+'px'; c.style.height = H+'px';
+      Bmax = Math.max(6, Math.round(W/6));   // 马赛克最大块（CSS px）
+    }
+    function draw(bs){
+      bs = Math.max(1, bs);
+      const DW=c.width, DH=c.height;                 // 用设备像素，保证 bs=1 时真正高清
+      const sw = Math.max(1, Math.round(DW/bs)), sh = Math.max(1, Math.round(DH/bs));
+      oc.width=sw; oc.height=sh;
+      octx.drawImage(img,0,0,sw,sh);          // 下采样到低分辨率
+      ctx.imageSmoothingEnabled=false;
+      ctx.clearRect(0,0,DW,DH);
+      ctx.drawImage(oc,0,0,DW,DH);             // 关闭平滑 → 硬边马赛克
+    }
+    const T_RESTORE=2200, T_HOLD_HD=1300, T_DEGRADE=900, T_HOLD_M=500;
+    const CYC = T_RESTORE+T_HOLD_HD+T_DEGRADE+T_HOLD_M;
+    function frame(ts){
+      if(!start) start=ts;
+      const e = (ts-start)%CYC; let bs;
+      if(e<T_RESTORE){ bs = Bmax + (1-Bmax)*ease(e/T_RESTORE); }            // 马赛克 → 高清
+      else if(e<T_RESTORE+T_HOLD_HD){ bs = 1; }                          // 保持高清
+      else if(e<T_RESTORE+T_HOLD_HD+T_DEGRADE){                          // 高清 → 马赛克
+        const q = ease((e-T_RESTORE-T_HOLD_HD)/T_DEGRADE); bs = 1 + (Bmax-1)*q;
+      } else { bs = Bmax; }                                                  // 保持马赛克
+      draw(bs);
+      raf = requestAnimationFrame(frame);
+    }
+    function go(){
+      fit();
+      img.style.display='block';
+      if(reduce){ fx.style.display='none'; return; }   // 减少动态：直接显示高清照片
+      fx.style.display='block';
+      cancelAnimationFrame(raf); raf=requestAnimationFrame(frame);
+    }
+    img.onload  = go;
+    img.onerror = function(){ if(fb) fb.style.display=''; img.style.display='none'; fx.style.display='none'; };
+    img.src = src;
+    if(img.complete && img.naturalWidth) go();
+    let rz; addEventListener('resize', ()=>{ clearTimeout(rz); rz=setTimeout(()=>{ if(img.naturalWidth){ fit(); if(reduce) draw(1); } },200); });
+  })();
+  if(Array.isArray(P.meta)){ const e=$('metaList'); if(e) e.innerHTML = P.meta.map(m=>'<li><b>'+esc(m.k)+'</b>'+esc(m.v)+'</li>').join(''); }
+  if(Array.isArray(P.edu)){ const e=$('edu'); if(e) e.innerHTML = '<span class="k">EDU</span><div>'+P.edu.map(d=>'<div class="edu-row"><b>'+esc(d.deg)+'</b> &middot; '+esc(d.school)+' <i>'+esc(d.years)+'</i></div>').join('')+'</div>'; }
+
+  const S = CFG.skills || {};
+  if(Array.isArray(S.stats)){ const e=$('stats'); if(e) e.innerHTML = S.stats.map(s=>'<div class="stat"><div class="top"><span>'+esc(s.label)+'</span><span class="val">'+esc(s.val)+'</span></div><div class="bar-track"><div class="bar-fill'+(s.cls?(' '+s.cls):'')+'" data-val="'+esc(s.val)+'"></div></div></div>').join(''); }
+  if(Array.isArray(S.groups)){ const e=$('skillGroups'); if(e){ const chip = c => typeof c==='string' ? '<span class="chip">'+esc(c)+'</span>' : '<span class="chip'+(c.lv?' lv':'')+'">'+esc(c.label)+'</span>';
+    e.innerHTML = S.groups.map(g=>'<div class="inv-group '+esc(g.cls)+'"><h3 class="sg '+esc(g.cls)+'">'+esc(g.title)+'</h3><div class="inv">'+g.chips.map(chip).join('')+'</div></div>').join(''); } }
+
+  if(Array.isArray(CFG.experience)){ const e=$('quests'); if(e) e.innerHTML = CFG.experience.map(q=>'<div class="quest"><div class="node"></div><div class="when">'+esc(q.when)+'</div><h4>'+esc(q.role)+' <span>@ '+esc(q.org)+'</span></h4><p>'+esc(q.desc)+'</p></div>').join(''); }
+
+  /* 论文：badge + 标题 + 作者 + 发表出处 + 摘要 + 可跳转链接(PDF/CODE/DOI) */
+  /* 论文：时间轴序列（节点 + 内容体）。字段：badge/title/authors/venue/desc/links */
+  if(Array.isArray(CFG.papers)){ const e=$('paperList'); if(e) e.innerHTML = CFG.papers.map(p=>'<div class="paper-item"><span class="node"></span><div class="paper-body"><span class="badge">'+esc(p.badge)+'</span><h4>'+esc(p.title)+'</h4><p class="authors">'+esc(p.authors)+'</p><p class="venue">'+esc(p.venue)+'</p><p class="abs">'+esc(p.desc)+'</p><div class="links">'+(Array.isArray(p.links)?p.links.map(l=>'<a href="'+esc(l.href)+'">'+esc(l.label)+'</a>').join(''):'')+'</div></div></div>').join(''); }
+
+  const Ct = CFG.contact || {};
+  /* 左侧意向列表：渲染时过滤掉 EMAIL（邮箱已在右侧卡片以大号 CTA 展示，避免重复） */
+  if(Array.isArray(Ct.intent)){ const e=$('intent'); if(e) e.innerHTML = Ct.intent.filter(i=>i.k!=="EMAIL").map(i=>'<p><span class="k">'+esc(i.k)+'</span><span class="v">'+esc(i.v)+'</span></p>').join(''); }
+  /* 用意向列表里的 EMAIL 项驱动右侧大号邮箱 CTA（mailto） */
+  const mail = (Ct.intent||[]).find(i=>i.k==="EMAIL");
+  const cta = $('contactCta'), cm = $('contactMail');
+  if(mail){ if(cta) cta.href = 'mailto:'+mail.v; if(cm) cm.textContent = mail.v; }
+  if(Ct.sub){ const e=$('contactSub'); if(e) e.textContent = Ct.sub; }
+  if(Array.isArray(Ct.socials)){ const e=$('socials'); if(e) e.innerHTML = Ct.socials.map(s=>'<a href="'+esc(s.href)+'">'+esc(s.label)+'</a>').join(''); }
+  if(Ct.note){ const e=$('contactNote'); if(e) e.innerHTML = esc(Ct.note); }
+
+  if(CFG.footer){ const e=$('footer'); if(e) e.innerHTML = '<span class="pix">// GAME OVER? NO, JUST GETTING STARTED</span>'+esc(CFG.footer); }
+})();
+
 (function(){
   const c = document.getElementById('splat');
   const ctx = c.getContext('2d');
@@ -703,7 +881,7 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
 
   let W,H, A, B, hbW, hbH, P;
   let tB={x:0,y:0}, thbW=0, thbH=0, tFocus=false, focus=0, t0=0;
-  const FOCUS_SEL = '.box, .card';          // 可聚焦的容器（面板 / 项目卡）
+  const FOCUS_SEL = '.box';                    // 可聚焦的容器（各面板，含论文整块）
 
   function build(){
     W=c.width=innerWidth; H=c.height=innerHeight;
@@ -857,12 +1035,10 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
    ============================================================ */
 (function(){
   const el = document.getElementById('typed');
-  const lines = [
-    "Reconstructing the world, one Gaussian at a time.",
-    "把真实世界变成可渲染的三维模型。",
-    "Seeking the next quest — 期待新机会。",
-    "From pixels to points, end to end."
-  ];
+  const CFG = window.SITE_CONFIG || {};
+  const lines = (CFG.hero && Array.isArray(CFG.hero.typed) && CFG.hero.typed.length)
+    ? CFG.hero.typed
+    : [ "Reconstructing the world, one Gaussian at a time." ];
   let li=0, ci=0, del=false;
   function tick(){
     const cur = lines[li];
