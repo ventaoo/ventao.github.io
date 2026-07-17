@@ -224,13 +224,13 @@ section{ padding:96px 0 30px; position:relative; z-index:10; }
 /* ============================================================
    PROFILE / 玩家卡
    ============================================================ */
-.about-grid{ display:grid; grid-template-columns:260px 1fr; gap:28px; align-items:stretch; }
+.about-grid{ display:flex; align-items:flex-start; gap:28px; }   /* 左头像按内容(照片比例)定宽，右 bio 填充剩余 */
 /* 头像卡片：标题栏 + 自适应头像舞台（重建扫描质感） + 底部状态条 */
 .avatar-box{
   background:var(--bg2); border:var(--pixel) solid var(--line);
   box-shadow:6px 6px 0 var(--shadow);
   display:flex; flex-direction:column; overflow:hidden;
-  align-self:start;   /* 不强行拉伸到与 bio 等高，高度交给头像比例 */
+  flex:0 0 auto; width:auto;   /* 尺寸交给舞台（照片比例 + 与 bio 等高推导），不拉伸 */
 }
 .avatar-box .av-head{
   display:flex; align-items:center; gap:8px;
@@ -262,7 +262,7 @@ section{ padding:96px 0 30px; position:relative; z-index:10; }
 .av-face .a-mouth{ fill:var(--green); }
 /* 真实照片 + 马赛克还原动画层 */
 .avatar-box img.av-img{
-  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; display:none;
+  position:absolute; inset:0; width:100%; height:100%; object-fit:contain; z-index:1; display:none;
 }
 .avatar-box canvas.av-fx{
   position:absolute; inset:0; width:100%; height:100%; z-index:1; display:none;
@@ -273,7 +273,7 @@ section{ padding:96px 0 30px; position:relative; z-index:10; }
 .p-name{ font-family:"Press Start 2P"; font-size:.92rem; color:var(--cyan);
   margin-bottom:16px; text-shadow:2px 2px 0 var(--line); letter-spacing:.5px; }
 .about-text .hl{ color:var(--orange); }
-.about-text{ width:100%; min-width:0; }      /* 填满右侧列，任意分辨率下不右侧留白 */
+.about-text{ flex:1 1 0; min-width:0; }      /* 填充右侧剩余宽度，与左侧头像等高对齐 */
 .about-text p{ width:100%; }                    /* 段落随列铺满（与虚线、两栏一致） */
 .about-text .meta-list, .about-text .edu-mini{ width:100%; } /* 两栏与虚线随列铺满 */
 /* 学历并入 PROFILE：紧凑双行式，复用像素窗口语汇 */
@@ -453,7 +453,7 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
    ============================================================ */
 @media (max-width:820px){
   nav.links{ display:none; }
-  .about-grid{ grid-template-columns:1fr; justify-items:center; text-align:center; }
+  .about-grid{ flex-direction:column; align-items:center; }
   .avatar-box{ max-width:300px; width:100%; margin:0 auto; }
   .about-grid .meta-list{ text-align:left; }
   .combo{ grid-template-columns:1fr; }
@@ -466,7 +466,7 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
 @media (min-width:1200px){ .wrap{ max-width:1140px; } }
 @media (min-width:1600px){ .wrap{ max-width:1320px; } .hero-name{ font-size:clamp(1.6rem,4.5vw,4rem); } }
 /* 左右布局等高：grid 默认 stretch，这里显式声明，确保左右卡片同高 */
-.about-grid, .combo, .contact-grid{ align-items:stretch; }
+.combo, .contact-grid{ align-items:stretch; }
 /* HERO 文字背后柔光：在更饱满的背景下保证可读性 */
 #hero::before{
   content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
@@ -837,9 +837,23 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
       draw(bs);
       raf = requestAnimationFrame(frame);
     }
-    function go(){
+    const avatarBox = stage.closest('.avatar-box');
+    const bio = document.querySelector('.about-text');
+    const isStacked = ()=> window.matchMedia('(max-width:820px)').matches;
+    /* 让头像(含标题栏+状态条)总高 ≈ 右侧 bio 高度：
+       用照片真实比例推导容器宽高 → 不变形、填满；左右等高、不空洞 */
+    function syncHeights(){
+      if(!img.naturalWidth || !bio || isStacked()){ stage.style.height=''; return; }  // 堆叠态交回自然尺寸
       const iw=img.naturalWidth||1, ih=img.naturalHeight||1;
-      stage.style.aspectRatio = iw+' / '+ih;   // 容器高宽比 = 照片原始比例 → 头像填满不变形
+      const Hb = bio.getBoundingClientRect().height;
+      const headFoot = avatarBox.offsetHeight - stage.offsetHeight;   // 标题栏+状态条高度（与舞台尺寸无关，恒定）
+      const target = Math.max(120, Math.round(Hb - headFoot));      // 舞台目标高 = bio 高 - 头脚 → 整卡与 bio 等高
+      stage.style.height = target + 'px';
+      stage.style.aspectRatio = iw + ' / ' + ih;                   // 宽由比例推导 → 照片真实比例、填满不变形
+    }
+    function go(){
+      syncHeights();                                            // 先按 bio 高度定舞台尺寸（比例不变）
+      requestAnimationFrame(()=>{ syncHeights(); fit(); if(reduce) draw(1); });  // 二次收敛：bio 宽度随头像宽变化后重测
       fit();
       img.style.display='block';
       if(reduce){ fx.style.display='none'; return; }   // 减少动态：直接显示高清照片
@@ -850,7 +864,7 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
     img.onerror = function(){ if(fb) fb.style.display=''; img.style.display='none'; fx.style.display='none'; };
     img.src = src;
     if(img.complete && img.naturalWidth) go();
-    let rz; addEventListener('resize', ()=>{ clearTimeout(rz); rz=setTimeout(()=>{ if(img.naturalWidth){ fit(); if(reduce) draw(1); } },200); });
+    let rz; addEventListener('resize', ()=>{ clearTimeout(rz); rz=setTimeout(()=>{ if(img.naturalWidth){ syncHeights(); fit(); if(reduce) draw(1); } },200); });
   })();
   if(Array.isArray(P.meta)){ const e=$('metaList'); if(e) e.innerHTML = P.meta.map(m=>'<li><b>'+esc(m.k)+'</b>'+esc(m.v)+'</li>').join(''); }
   if(Array.isArray(P.edu)){ const e=$('edu'); if(e) e.innerHTML = '<span class="k">EDU</span><div>'+P.edu.map(d=>'<div class="edu-row"><b>'+esc(d.deg)+'</b> &middot; '+esc(d.school)+' <i>'+esc(d.years)+'</i></div>').join('')+'</div>'; }
