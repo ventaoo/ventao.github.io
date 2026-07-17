@@ -230,6 +230,7 @@ section{ padding:96px 0 30px; position:relative; z-index:10; }
   background:var(--bg2); border:var(--pixel) solid var(--line);
   box-shadow:6px 6px 0 var(--shadow);
   display:flex; flex-direction:column; overflow:hidden;
+  align-self:start;   /* 不强行拉伸到与 bio 等高，高度交给头像比例 */
 }
 .avatar-box .av-head{
   display:flex; align-items:center; gap:8px;
@@ -238,11 +239,12 @@ section{ padding:96px 0 30px; position:relative; z-index:10; }
 .avatar-box .av-head .tag{ font-family:"Press Start 2P"; font-size:.5rem; color:var(--yellow); letter-spacing:1px; }
 .avatar-box .av-head .tag .pulse{ color:var(--green); }
 .avatar-box .av-stage{
-  flex:1; display:flex; align-items:center; justify-content:center; padding:20px;
+  flex:0 0 auto; aspect-ratio:1 / 1;   /* 高度由图片比例决定（JS 动态改写），不拉伸 */
+  display:flex; align-items:center; justify-content:center; padding:20px;
   background:
     radial-gradient(circle at 50% 40%, rgba(176,108,214,.10), transparent 60%),
     #1a1c2c;
-  min-height:215px; position:relative;
+  min-height:180px; position:relative;
 }
 .avatar-box svg.av-face{ width:100%; max-width:200px; height:auto; position:relative; z-index:1; }
 /* 底部状态条：OPEN TO WORK（头像卡底栏，左右等高时自然落在最下方） */
@@ -260,7 +262,7 @@ section{ padding:96px 0 30px; position:relative; z-index:10; }
 .av-face .a-mouth{ fill:var(--green); }
 /* 真实照片 + 马赛克还原动画层 */
 .avatar-box img.av-img{
-  position:absolute; inset:0; width:100%; height:100%; object-fit:contain; z-index:1; display:none;
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; display:none;
 }
 .avatar-box canvas.av-fx{
   position:absolute; inset:0; width:100%; height:100%; z-index:1; display:none;
@@ -836,6 +838,8 @@ a:focus-visible, button:focus-visible, .btn:focus-visible{
       raf = requestAnimationFrame(frame);
     }
     function go(){
+      const iw=img.naturalWidth||1, ih=img.naturalHeight||1;
+      stage.style.aspectRatio = iw+' / '+ih;   // 容器高宽比 = 照片原始比例 → 头像填满不变形
       fit();
       img.style.display='block';
       if(reduce){ fx.style.display='none'; return; }   // 减少动态：直接显示高清照片
